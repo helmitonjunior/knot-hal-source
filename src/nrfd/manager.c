@@ -54,7 +54,7 @@ static struct nrf24_mac known_peers[MAX_PEERS];
 
 static uint8_t count_clients;
 
-/* Check if peer is on list of known peers */
+/* Check if peer is on list of known peers
 static int8_t check_permission(struct nrf24_mac mac)
 {
 	uint8_t i;
@@ -65,7 +65,7 @@ static int8_t check_permission(struct nrf24_mac mac)
 	}
 
 	return -EPERM;
-}
+}*/
 
 /* Get peer position in vector of peers*/
 static int8_t get_peer(struct nrf24_mac mac)
@@ -158,9 +158,9 @@ static int8_t evt_presence(struct mgmt_nrf24_header *mhdr)
 	struct mgmt_evt_nrf24_bcast_presence *evt_pre =
 			(struct mgmt_evt_nrf24_bcast_presence *) mhdr->payload;
 
-	/* Check if peer is allowed to connect */
+	/* Check if peer is allowed to connect
 	if (check_permission(evt_pre->mac) < 0)
-		return -EPERM;
+		return -EPERM;*/
 
 	if (count_clients >= MAX_PEERS)
 		return -EUSERS; /*MAX PEERS*/

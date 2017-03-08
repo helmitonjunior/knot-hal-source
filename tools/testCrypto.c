@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 	printf("\n");
 	/*End of Encryption*/
 
-	decryptedtext_len = decrypt(bytebuffer, ciphertext_len, skey, 0, temp);
+	decryptedtext_len = decrypt(bytebuffer, ciphertext_len, skey, &iv);
 	printf("\nbytebuffer(%d):\n", decryptedtext_len);
 
 	for (uint8_t i = 0; i < decryptedtext_len; i++)

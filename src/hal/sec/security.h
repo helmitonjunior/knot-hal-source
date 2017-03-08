@@ -30,8 +30,8 @@ extern "C"{
 
 #define NUM_ECC_DIGITS ECC_CURVE
 
-int encrypt(unsigned char *plaintext, int plaintext_len,
-	unsigned char *key, unsigned char *iv, unsigned char *ciphertext);
+size_t encrypt(uint8_t *plaintext, size_t plaintext_len,
+	uint8_t *key, unsigned char *iv);
 int decrypt(unsigned char *ciphertext, int ciphertext_len,
 	unsigned char *key, unsigned char *iv, unsigned char *plaintext);
 void derive_secret (uint8_t stpubx[],uint8_t stpuby[], uint8_t lcpriv[],

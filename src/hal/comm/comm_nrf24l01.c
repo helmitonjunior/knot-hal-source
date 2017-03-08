@@ -38,6 +38,7 @@
 /* secret key and auxiliar buffer*/
 uint8_t bytebuffer[48];
 uint8_t skey[32];
+uint8_t iv = 0x00;
 
 uint8_t private_4[NUM_ECC_DIGITS] = {0xA3, 0xB0, 0x24, 0xBB, 0xA9, \
 	0xA2, 0xC2, 0xC0, 0xB2, 0xE6, 0xEB, 0x32, 0xF7, 0x40, 0xF3, 0xD7, \
@@ -205,7 +206,7 @@ static int write_disconnect(int spi_fd, int sockfd, struct nrf24_mac dst,
 static int write_keepalive(int spi_fd, int sockfd, int keepalive_op,
 				struct nrf24_mac dst, struct nrf24_mac src)
 {
-	int err, ciphertext_len;
+	int err;
 	uint8_t *cdata;
 	size_t block, size;
 	/* Assemble keep alive packet */
@@ -237,10 +238,11 @@ static int write_keepalive(int spi_fd, int sockfd, int keepalive_op,
 	else
 		block = 16;
 
-	derive_secret(public_3x, public_3y, private_4,
-						public_4x, public_4y, skey);
-	ciphertext_len = encrypt(cdata, block, skey, 0, bytebuffer);
-	memcpy(cdata, bytebuffer, ciphertext_len);
+	derive_secret (public_3x, public_3y, private_4,
+					public_4x, public_4y, skey);
+
+	err = encrypt(cdata, block, skey, &iv);
+
 	size = block;
 	/*End of Encryption*/
 
@@ -405,7 +407,7 @@ static int read_mgmt(int spi_fd)
 
 static int write_raw(int spi_fd, int sockfd)
 {
-	int err, ciphertext_len;
+	int err;
 	struct nrf24_io_pack p;
 	struct nrf24_ll_data_pdu *opdu = (void *)p.payload;
 	size_t plen, left, block;
@@ -451,18 +453,20 @@ static int write_raw(int spi_fd, int sockfd)
 			(peers[sockfd-1].len_tx - left), plen);
 
 		/*Encrypt Data*/
+		
 		if (plen > 16)
 			block = 32;
 		else
 			block = 16;
+		
 		cdata = opdu->payload + 2;
 
 		derive_secret (public_3x, public_3y, private_4,
 						public_4x, public_4y, skey);
-		ciphertext_len = encrypt (cdata, block, skey, 0,
-								bytebuffer);
-		memcpy(cdata, bytebuffer, ciphertext_len);
+		
+		err = encrypt(cdata, block, skey, &iv);
 		plen = block;
+
 		/*End of Encryption*/
 
 		/* Send packet */

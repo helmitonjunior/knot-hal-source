@@ -80,6 +80,8 @@ uint8_t public_3y[NUM_ECC_DIGITS] = {0xF4, 0x60, 0xB9, 0x86, 0x5A, 0xC5, \
 0x05, 0x47, 0xE4, 0x02, 0x8C, 0xAF, 0x0C, 0x2D, 0xDB, 0x8A, 0xC9, 0x66,
 0x37, 0x1F};
 */
+// set IV
+uint8_t iv = 0x00;
 
 int main(int argc, char *argv[])
 {
@@ -100,7 +102,8 @@ int main(int argc, char *argv[])
 
 	derive_secret(public_3x, public_3y, private_4, public_4x, public_4y,
 									skey);
-	ciphertext_len = encrypt((unsigned char *)MESSAGE, MESSAGE_SIZE, skey, 0, bytebuffer);
+	ciphertext_len = encrypt((unsigned char *)MESSAGE, MESSAGE_SIZE, skey, &iv);
+
 	printf("\nciphertext_len(%d):\n", ciphertext_len);
 	for (uint8_t i = 0; i < ciphertext_len; i++)
 		printf("0x%02X ", (unsigned) bytebuffer[i]);

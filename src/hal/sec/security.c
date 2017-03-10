@@ -26,7 +26,7 @@
 #define URANDOM_PATH	"/dev/urandom"
 #define ECC_RETRIES	10
 
-size_t encrypt(uint8_t *plaintext, size_t plaintext_len,
+int encrypt(uint8_t *plaintext, size_t plaintext_len,
 					uint8_t *key, unsigned char *iv)
 {
 	#ifdef ARDUINO
@@ -60,7 +60,7 @@ size_t encrypt(uint8_t *plaintext, size_t plaintext_len,
 	/* Create and initialize the context */
 	ctx = EVP_CIPHER_CTX_new();
 	if (!ctx)
-		printf("Error EVP_CIPHER_CTX_new");
+		return -1;
 	/*
 	 * Initialize the encryption operation. IMPORTANT - ensure you use a key
 	 * and IV size appropriate for your cipher
@@ -69,14 +69,14 @@ size_t encrypt(uint8_t *plaintext, size_t plaintext_len,
 	 * is 128 bits
 	 */
 	if (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv) != 1)
-		printf("Error EVP_EncryptInit");
+		return -2;
 	/*
 	 * Provide the message to be encrypted, and obtain the encrypted output.
 	 * EVP_EncryptUpdate can be called multiple times if necessary
 	 */
 	if (EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext,
 							plaintext_len) != 1)
-		printf("Error EVP_EncryptUpdate");
+		return -3;
 
 	ciphertext_len = len;
 	/*
@@ -84,7 +84,7 @@ size_t encrypt(uint8_t *plaintext, size_t plaintext_len,
 	 * this stage.
 	 */
 	if (EVP_EncryptFinal_ex(ctx, ciphertext + len, &len) != 1)
-		printf("Error EVP_EncryptFinal_ex");
+		return -4;
 
 	ciphertext_len += len;
 
@@ -140,7 +140,7 @@ int decrypt(uint8_t *ciphertext, size_t ciphertext_len,
 	/* Create and initialize the context */
 	ctx = EVP_CIPHER_CTX_new();
 	if (!ctx)
-		printf("Error EVP_CIPHER_CTX_new");
+		return -1;
 	/*
 	 * Initialize the decryption operation. IMPORTANT - ensure you use a key
 	 * and IV size appropriate for your cipher
@@ -149,14 +149,14 @@ int decrypt(uint8_t *ciphertext, size_t ciphertext_len,
 	 * is 128 bits
 	 */
 	if (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv) != 1)
-		printf("Error EVP_DecryptInit_ex");
+		return -5;
 	/*
 	 * Provide the message to be decrypted, and obtain the plaintext output.
 	 * EVP_DecryptUpdate can be called multiple times if necessary
 	 */
 	if (EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext,
 							ciphertext_len) != 1)
-		printf("Error EVP_DecryptUpdate");
+		return -6;
 
 	plaintext_len = len;
 	/*
@@ -164,7 +164,7 @@ int decrypt(uint8_t *ciphertext, size_t ciphertext_len,
 	 * this stage.
 	 */
 	if (EVP_DecryptFinal_ex(ctx, plaintext + len, &len) != 1)
-		printf("Error EVP_DecriptFinal");
+		return -7;
 
 	plaintext_len += len;
 	/* Clean up */
@@ -175,7 +175,7 @@ int decrypt(uint8_t *ciphertext, size_t ciphertext_len,
 	return plaintext_len;
 }
 
-void derive_secret(uint8_t stpubx[], uint8_t stpuby[], uint8_t lcpriv[],
+int derive_secret(uint8_t stpubx[], uint8_t stpuby[], uint8_t lcpriv[],
 			uint8_t lcpubx[], uint8_t lcpuby[], uint8_t secret[])
 {
 	/* shared secret context */
@@ -219,11 +219,11 @@ void derive_secret(uint8_t stpubx[], uint8_t stpuby[], uint8_t lcpriv[],
 	/* Creating keys from curve */
 	myecc = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
 	if (myecc == NULL)
-		printf("Error creating local key");
+		return -8;
 
 	peerecc = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
 	if (peerecc == NULL)
-		printf("Error creating imported public key");
+		return -9;
 
 	/* Certificate sign using OPENSSL_EC_NAMED_CURVE flag */
 	EC_KEY_set_asn1_flag(myecc, OPENSSL_EC_NAMED_CURVE);
@@ -231,43 +231,43 @@ void derive_secret(uint8_t stpubx[], uint8_t stpuby[], uint8_t lcpriv[],
 
 	/* Setting public keys (local and imported) on EC_KEY */
 	if (EC_KEY_set_public_key(myecc, ptlocal) != 1)
-		printf("Error setting public local key");
+		return -10;
 	if (EC_KEY_set_public_key(peerecc, ptimport) != 1)
-		printf("Error setting imported public key");
+		return -11;
 	/* Setting private local key on EC_KEY */
 	if (EC_KEY_set_private_key(myecc, prv) != 1)
-		printf("Error setting private key");
+		return -12;
 
 	/* Creating EVP_KEY struct to derive shared secret */
 	peerkey = EVP_PKEY_new();
 	/* FIXME: check peerkey? */
 	if (!EVP_PKEY_assign_EC_KEY(peerkey, peerecc))
-		printf("Error sign peerkey");
+		return -13;
 
 	pkey = EVP_PKEY_new();
 	/* FIXME: check pkey? */
 	if (!EVP_PKEY_assign_EC_KEY(pkey, myecc))
-		printf("Error sign pkey");
+		return -14;
 
 	/* Generating context for shared secret derivation */
 	ctx = EVP_PKEY_CTX_new(pkey, NULL);
 	if (ctx == NULL)
-		printf("Error generating shared secret ctx");
+		return -1;
 	/* Initializing context */
 	if (EVP_PKEY_derive_init(ctx) != 1)
-		printf("Error initializing derivation");
+		return -15;
 	/* Setting imported public key onto derivation */
 	if (EVP_PKEY_derive_set_peer(ctx, peerkey) != 1)
-		printf("Error setting peer key");
+		return -16;
 	/* Dynamically allocating buffer size */
 	if (EVP_PKEY_derive(ctx, NULL, &skeylen) <= 0)
-		printf("Error allocating buffer size");
+		return -17;
 
 	skey = OPENSSL_malloc(skeylen);
 
 	/* Derive shared secret */
 	if ((EVP_PKEY_derive(ctx, skey, &skeylen)) != 1)
-		printf("Error deriving secret");
+		return -18;
 	/* Printing Shared Secret */
 	memcpy(secret, skey, skeylen);
 
@@ -285,21 +285,24 @@ void derive_secret(uint8_t stpubx[], uint8_t stpuby[], uint8_t lcpriv[],
 	EC_POINT_free(ptlocal);
 	EC_POINT_free(ptimport);
 	BN_CTX_free(bnctx);
+
+	return 0;
 	#endif
 }
 
 extern void EccPoint_mult(EccPoint * p_result, EccPoint * p_point,
 							uint8_t *p_scalar);
 
-static void getRandomBytes(int randfd, void *p_dest, unsigned p_size)
+static int getRandomBytes(int randfd, void *p_dest, unsigned p_size)
 {
 	if (read(randfd, p_dest, p_size) != (int)p_size)
-		printf("Failed to get random bytes.");
+		return -19;
+	return 0;
 }
 
 int generate_keys(uint8_t *keys)
 {
-	int randfd;
+	int randfd, randb;
 	EccPoint l_public;
 	uint8_t l_private[NUM_ECC_DIGITS];
 	//unsigned l_num = 1;
@@ -308,19 +311,19 @@ int generate_keys(uint8_t *keys)
 
 	randfd = open(URANDOM_PATH, O_RDONLY);
 	if (randfd == -1) {
-		printf("Could not access urandom");
-		return 0;
+		return -20;
+	return 0;
 	}
 	/* if make_keys fails, try renew random values and retry */
-	/* FIXME: quit loop after ECC_RETRIES unsuccessful retries */
 	while (!success) {
 		count++;
-		getRandomBytes(randfd, (char *) l_private, NUM_ECC_DIGITS *
+		randb = getRandomBytes(randfd, (char *) l_private, NUM_ECC_DIGITS *
 							sizeof(uint8_t));
 		success = ecc_make_key(&l_public, l_private, l_private);
-		if (count > ECC_RETRIES)
-			printf("Error: Cannot generate ecc key! \
-						Something went wrong.\n");
+		if (randb < 0)
+			return randb; 
+		else if (count > ECC_RETRIES)
+			return -21;
 	}
 	memcpy(keys, l_private, NUM_ECC_DIGITS);
 	memcpy(keys + NUM_ECC_DIGITS, l_public.x, NUM_ECC_DIGITS);

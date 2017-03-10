@@ -243,6 +243,10 @@ static int write_keepalive(int spi_fd, int sockfd, int keepalive_op,
 
 	err = encrypt(cdata, block, skey, &iv);
 
+	if (err < 0){
+		return err;
+	}
+	
 	size = block;
 	/*End of Encryption*/
 

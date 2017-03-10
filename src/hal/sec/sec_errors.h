@@ -30,7 +30,8 @@ extern "C" {
 #define ERROR_EVP_DERIVE 			-18 /* Error derivating key */
 #define ERROR_GET_RANDOM			-19 /* Error getting random bytes*/
 #define ERROR_ACCESS_URANDOM		-20 /* Cannot access urandom */
-#define ERROR_ECC_MK_KEYS			-21 /* Error generating key pair */
+#define ERROR_ECC_MK_KEYS			-21 /* Invalid random bytes to make keys */
+#define ERROR_BAD_PADDING			-22 /* Error while unpadding data */
 
 #ifdef __cplusplus
 }

@@ -41,4 +41,3 @@ int generate_keys(uint8_t *keys);
 #ifdef __cplusplus
 } // extern "C"
 #endif
-

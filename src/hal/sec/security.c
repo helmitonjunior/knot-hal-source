@@ -121,14 +121,14 @@ int decrypt(uint8_t *ciphertext, size_t ciphertext_len,
 	for (i = 1; i < pad_value; i++) {
 		if (ciphertext[size-i] != pad_value) {
 			ispadded = 0;
-			/*TO-DO: Define err number*/
-			return -1;
+			return -22;
 		}
 	}
 	if (ispadded == 1) 
 		for (i = 1; i <= pad_value; i++) 
 			cdata[size-i] = 0x00;
-		
+	
+	return 1;		
 
 	#else
 
@@ -240,12 +240,13 @@ int derive_secret(uint8_t stpubx[], uint8_t stpuby[], uint8_t lcpriv[],
 
 	/* Creating EVP_KEY struct to derive shared secret */
 	peerkey = EVP_PKEY_new();
-	/* FIXME: check peerkey? */
+
+	/* Checks peerecc value */
 	if (!EVP_PKEY_assign_EC_KEY(peerkey, peerecc))
 		return -13;
 
 	pkey = EVP_PKEY_new();
-	/* FIXME: check pkey? */
+	/* Checks myecc value */
 	if (!EVP_PKEY_assign_EC_KEY(pkey, myecc))
 		return -14;
 
@@ -285,8 +286,8 @@ int derive_secret(uint8_t stpubx[], uint8_t stpuby[], uint8_t lcpriv[],
 	EC_POINT_free(ptlocal);
 	EC_POINT_free(ptimport);
 	BN_CTX_free(bnctx);
+	return 1;
 
-	return 0;
 	#endif
 }
 
@@ -297,7 +298,7 @@ static int getRandomBytes(int randfd, void *p_dest, unsigned p_size)
 {
 	if (read(randfd, p_dest, p_size) != (int)p_size)
 		return -19;
-	return 0;
+	return 1;
 }
 
 int generate_keys(uint8_t *keys)
@@ -308,12 +309,10 @@ int generate_keys(uint8_t *keys)
 	//unsigned l_num = 1;
 	int success = 0, count = 0;
 
-
 	randfd = open(URANDOM_PATH, O_RDONLY);
-	if (randfd == -1) {
+	if (randfd == -1)
 		return -20;
-	return 0;
-	}
+	
 	/* if make_keys fails, try renew random values and retry */
 	while (!success) {
 		count++;

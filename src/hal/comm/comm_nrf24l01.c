@@ -469,6 +469,9 @@ static int write_raw(int spi_fd, int sockfd)
 						public_4x, public_4y, skey);
 		
 		err = encrypt(cdata, block, skey, &iv);
+		if (err < 0)
+			return err;
+		
 		plen = block;
 
 		/*End of Encryption*/
@@ -530,6 +533,7 @@ static int read_raw(int spi_fd, int sockfd)
 		size = decrypt(cdata, block, skey, 0);
 		
 		if (size < 0)
+			return size;
 			/*TO-DO set err = size if size <0*/
 
 		/*End of Decryption*/

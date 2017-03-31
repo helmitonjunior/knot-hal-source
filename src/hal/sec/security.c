@@ -7,6 +7,7 @@
 #include <openssl/aes.h>
 #include <openssl/rand.h>
 #include <openssl/conf.h>
+#include <openssl/cmac.h>
 #include "nanoecc/ecc.h"
 #include "aes/aes.h"
 #include "include/linux_log.h"
@@ -70,6 +71,44 @@ int encrypt(uint8_t *plaintext, size_t plaintext_len,
 
 	return ciphertext_len;
 }
+
+/*
+* Calculates CMAC using AES 128 bits with ecb encryption
+* Inputing message 0x6b,0xc1,0xbe,0xe2,0x2e,0x40,0x9f,0x96, 
+*				   0xe9,0x3d,0x7e,0x11,0x73,0x93,0x17,0x2a
+* Should output  070a16b4 6b4d4144 f79bdd9d d04a287c 
+*/
+int lora_cmac(uint8_t *plaintext, size_t plaintext_len, uint8_t *mact,
+ 						size_t mact_len, uint8_t *key, unsigned char *iv)
+{
+
+	CMAC_CTX *ctx = CMAC_CTX_new();
+	
+	/* Create and initialize the context */
+	if (!ctx)
+		return ERROR_EVP_CMAC_CTX_NEW;
+	/*
+	 * Initialize the CMAC operation.
+	 * In this example we are using 128 bit AES ECB, as defined on Lora protocol.
+	 */
+	if (CMAC_Init(ctx, key, mact_len , EVP_aes_128_ecb(), NULL) != 1)
+		return ERROR_EVP_CMAC_INIT;
+	
+	if (CMAC_Update(ctx, plaintext, plaintext_len) != 1)
+		return ERROR_EVP_CMAC_UPDATE;
+
+	/*
+	 * Finalize CMAC generation
+	 */
+	if (CMAC_Final(ctx, mact, &mact_len) != 1)
+		return ERROR_EVP_CMAC_FINAL;
+
+	/* Clean up */
+	CMAC_CTX_free(ctx);
+
+	return 1;
+}
+
 
 int decrypt(uint8_t *ciphertext, size_t ciphertext_len,
 		uint8_t *key, uint8_t *iv)

@@ -33,3 +33,5 @@ int decrypt(uint8_t *ciphertext, size_t ciphertext_len,
 int derive_secret(uint8_t stpx[],uint8_t stpy[], uint8_t lcpriv[],
 			uint8_t lcpx[], uint8_t lcpy[], uint8_t secret[], uint8_t *iv);
 int generate_keys(uint8_t *keys);
+int lora_cmac(uint8_t *plaintext, size_t plaintext_len, uint8_t *mact,
+ 						size_t mact_len, uint8_t *key, unsigned char *iv);

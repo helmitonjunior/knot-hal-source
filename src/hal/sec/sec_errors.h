@@ -35,6 +35,10 @@ extern "C" {
 #define	ERROR_CURVE_NOT_DEFINED		-23 /* ECC curve hasn't been defined */
 #define ERROR_NANO_DERIVE_SKEY		-24 /* Error derivating key on nanoecc */
 #define ERROR_FUNCTION_UNAVALIABLE	-25 /* Function currently unavaliable */
+#define	ERROR_EVP_CMAC_CTX_NEW		-26 /* Error creating context */
+#define ERROR_EVP_CMAC_INIT			-27 /* Error initializing cmac function*/
+#define ERROR_EVP_CMAC_UPDATE		-28 /* Error updating cmac function*/
+#define ERROR_EVP_CMAC_FINAL		-29 /* Error finilizing cmac function*/
 
 #ifdef __cplusplus
 }

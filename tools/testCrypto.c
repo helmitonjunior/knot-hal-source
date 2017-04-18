@@ -88,9 +88,19 @@ uint8_t public_3y[NUM_ECC_DIGITS] = {0xF4, 0x60, 0xB9, 0x86, 0x5A, 0xC5, \
 * Place here your thing's encrypted data 
 * (payload only, do not include packet header)
 */
-uint8_t thing_data [16] ={
+uint8_t thing_data [CYPERED_DATA_SIZE] ={
 	0xF3, 0x21, 0xED, 0x3F, 0x67, 0x5A, 0x18, 0xFA, \
 	0x90, 0x95, 0x26, 0x8D, 0xFC, 0xC9, 0x13, 0x23};
+
+/*16-bytes key for 128-bits AES functions on Lora*/
+uint8_t lora_key [16] ={
+	0xA8, 0x78, 0x51, 0x3A, 0x5D, 0xDA, 0x9C, 0x33, \
+    0x35, 0xB4, 0x05, 0x06, 0xE1, 0x1E, 0x88, 0xD9};
+
+uint8_t lora_data [12] ={
+	0x3F, 0x9B, 0x0D, 0x70, 0x57, 0x3D, 0x40, 0x1A, \
+	0x6F, 0xFE, 0xB0, 0x9C};
+	//, 0x05, 0x47, 0xE4, 0x02
 
 // set IV
 uint8_t iv = 0x00;
@@ -158,6 +168,21 @@ int main(int argc, char *argv[])
 	printf("Thing's Decrypted Message (%d):\n", decryptedtext_len);
 	print_hex(thing_data,decryptedtext_len);
 	printf("Decryption Result: %s\n", thing_data);
+
+	printSection();
+	/*Loras's data decryption*/
+	printf("Lora's Plaintext Message (%lu):\n", sizeof(lora_data));
+	print_hex(lora_data, sizeof(lora_data));
+	memcpy(bytebuffer, lora_data, sizeof(lora_data));
+	ciphertext_len = encrypt_lora(bytebuffer, sizeof(lora_data), lora_key, &iv);
+	printf("Lora's Encrypted Message (%d):\n", ciphertext_len);
+	print_hex(bytebuffer, ciphertext_len);
+	decryptedtext_len = decrypt_lora(bytebuffer, ciphertext_len, lora_key, &iv);
+	printf("Lora's Decrypted Message (%d):\n", decryptedtext_len);
+	print_hex(bytebuffer,decryptedtext_len);
+	memcpy(lora_data, bytebuffer, decryptedtext_len);
+	printf("Decryption Result: %s\n", lora_data);
+
 
 	return 0;
 }

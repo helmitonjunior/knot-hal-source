@@ -72,6 +72,66 @@ int encrypt(uint8_t *plaintext, size_t plaintext_len,
 	return ciphertext_len;
 }
 
+int encrypt_lora(uint8_t *plaintext, size_t plaintext_len,
+					uint8_t *key, unsigned char *iv)
+{
+	EVP_CIPHER_CTX *ctx;
+	size_t i, to_pad;
+	int len, ciphertext_len;
+	uint8_t  ciphertext[NUM_ECC_DIGITS];
+	
+	/* Zero-Padding for n*16 bytes blocks */
+	to_pad= 15 - plaintext_len % 16;
+	printf("To-pad: %lu \n ", to_pad);
+	if (to_pad > 0){
+		for (i = plaintext_len+to_pad; i >= plaintext_len; i--)
+			plaintext[i] = 0x00;
+	} 
+	plaintext_len += to_pad;
+	printf("\nPadded:\n");
+	for(i = 0; i < 16; i++){
+		printf("0x%02X ", (unsigned) plaintext[i]);
+	}
+	
+	/* Create and initialize the context */
+	ctx = EVP_CIPHER_CTX_new();
+	if (!ctx)
+		return ERROR_EVP_CIPHER_CTX_NEW;
+	/*
+	 * Initialize the encryption operation. IMPORTANT - ensure you use a key
+	 * and IV size appropriate for your cipher
+	 * In this example we are using 256 bit AES (i.e. a 256 bit key). The
+	 * IV size for *most* modes is the same as the block size. For AES this
+	 * is 128 bits
+	 */
+	if (EVP_EncryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, iv) != 1)
+		return ERROR_EVP_ENC_INIT;
+	/*
+	 * Provide the message to be encrypted, and obtain the encrypted output.
+	 * EVP_EncryptUpdate can be called multiple times if necessary
+	 */
+	if (EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext,
+							plaintext_len) != 1)
+		return ERROR_EVP_ENC_UPDATE;
+
+	ciphertext_len = len;
+	/*
+	 * Finalize the encryption. Further ciphertext bytes may be written at
+	 * this stage.
+	 */
+	if (EVP_EncryptFinal_ex(ctx, ciphertext + len, &len) != 1)
+		return ERROR_EVP_ENC_FINAL;
+
+	ciphertext_len += len;
+
+	/* Clean up */
+	EVP_CIPHER_CTX_free(ctx);
+
+	memcpy(plaintext, ciphertext, ciphertext_len);
+
+	return ciphertext_len;
+}
+
 /*
 * Calculates CMAC using AES 128 bits with ecb encryption
 * Inputing message 0x6b,0xc1,0xbe,0xe2,0x2e,0x40,0x9f,0x96, 
@@ -149,6 +209,62 @@ int decrypt(uint8_t *ciphertext, size_t ciphertext_len,
 	plaintext_len += len;
 	/* Clean up */
 	EVP_CIPHER_CTX_free(ctx);
+
+	memcpy(ciphertext, plaintext, plaintext_len);
+
+	return plaintext_len;
+}
+
+int decrypt_lora(uint8_t *ciphertext, size_t ciphertext_len,
+		uint8_t *key, uint8_t *iv)
+{
+	EVP_CIPHER_CTX *ctx;
+	int i, len, plaintext_len;
+	uint8_t plaintext[NUM_ECC_DIGITS];
+
+	/* Create and initialize the context */
+	ctx = EVP_CIPHER_CTX_new();
+	if (!ctx)
+		return ERROR_EVP_CIPHER_CTX_NEW;
+	/*
+	 * Initialize the decryption operation. IMPORTANT - ensure you use a key
+	 * and IV size appropriate for your cipher
+	 * In this example we are using 256 bit AES (i.e. a 256 bit key). The
+	 * IV size for *most* modes is the same as the block size. For AES this
+	 * is 128 bits
+	 */
+	if (EVP_DecryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, iv) != 1)
+		return ERROR_EVP_DEC_INIT;
+	/*
+	 * Provide the message to be decrypted, and obtain the plaintext output.
+	 * EVP_DecryptUpdate can be called multiple times if necessary
+	 */
+	if (EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext,
+							ciphertext_len) != 1)
+		return ERROR_EVP_DEC_UPDATE;
+
+	plaintext_len = len;
+	/*
+	 * Finalize the decryption. Further plaintext bytes may be written at
+	 * this stage.
+	 */
+	if (EVP_DecryptFinal_ex(ctx, plaintext + len, &len) != 1)
+		return ERROR_EVP_DEC_FINAL;
+	
+	plaintext_len += len;
+	/* Clean up */
+	EVP_CIPHER_CTX_free(ctx);
+	
+	/*Updates unpadded text length (for zero-padding)*/
+	if (plaintext[plaintext_len-1] == 0x00){ 
+		for (i= plaintext_len-1; i > 0 ; i--){
+			if (plaintext[i] == 0x00){
+				plaintext_len --;
+			} else{
+				i = -1;
+			}
+		}
+	}
 
 	memcpy(ciphertext, plaintext, plaintext_len);
 

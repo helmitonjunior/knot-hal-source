@@ -30,6 +30,10 @@ int encrypt(uint8_t *plaintext, size_t plaintext_len,
 			uint8_t *key, uint8_t *iv);
 int decrypt(uint8_t *ciphertext, size_t ciphertext_len,
 			uint8_t *key, uint8_t *iv);
+int encrypt_lora(uint8_t *plaintext, size_t plaintext_len,
+			uint8_t *key, uint8_t *iv);
+int decrypt_lora(uint8_t *ciphertext, size_t ciphertext_len,
+			uint8_t *key, uint8_t *iv);
 int derive_secret(uint8_t stpx[],uint8_t stpy[], uint8_t lcpriv[],
 			uint8_t lcpx[], uint8_t lcpy[], uint8_t secret[], uint8_t *iv);
 int generate_keys(uint8_t *keys);

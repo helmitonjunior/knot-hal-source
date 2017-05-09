@@ -15,9 +15,11 @@
 #ifdef ARDUINO
 #include "include/avr_errno.h"
 #include "include/avr_unistd.h"
+#include "src/hal/sec/security_ino.h"
 #else
 #include <errno.h>
 #include <unistd.h>
+#include "src/hal/sec/security.h"
 #endif
 
 #include "include/nrf24.h"
@@ -28,11 +30,40 @@
 #include "phy_driver_nrf24.h"
 #include "nrf24l01_ll.h"
 
+
 #define _MIN(a, b)		((a) < (b) ? (a) : (b))
 #define DATA_SIZE 128
 #define MGMT_SIZE 32
 #define MGMT_TIMEOUT 10
 #define RAW_TIMEOUT 60
+
+/* secret key and auxiliar buffer*/
+uint8_t bytebuffer[48];
+uint8_t skey[32];
+uint8_t iv = 0x00;
+
+uint8_t private_4[NUM_ECC_DIGITS] = {0xA3, 0xB0, 0x24, 0xBB, 0xA9, \
+	0xA2, 0xC2, 0xC0, 0xB2, 0xE6, 0xEB, 0x32, 0xF7, 0x40, 0xF3, 0xD7, \
+	0xB6, 0xFA, 0x27, 0x2F, 0xA8, 0x09, 0xE7, 0x6D, 0xF7, 0x7F, 0xF8, \
+	0xB5, 0x7F, 0x0D, 0xDF, 0xBE};
+uint8_t public_4x[NUM_ECC_DIGITS] = {0x03, 0x7A, 0xDC, 0x3D, 0x4C, \
+	0x9D, 0xDD, 0x77, 0xA8, 0xC2, 0x65, 0x5C, 0xA0, 0xE8, 0xCC, 0x51, \
+	0xA7, 0x21, 0x6B, 0xD1, 0x9A, 0x4A, 0xA3, 0x55, 0x71, 0xAC, 0x2A, \
+	0x72, 0xFE, 0x9C, 0xE6, 0x06};
+uint8_t public_4y[NUM_ECC_DIGITS] = {0x96, 0x3F, 0x32, 0x1B, 0x42, 0x1D, \
+	0xE1, 0x47, 0x3D, 0xA5, 0xE8, 0x57, 0xDF, 0xBA, 0x09, 0xF2, 0xB0, 0x2E, \
+	0xEF, 0x79, 0xD0, 0x31, 0xF1, 0xCD, 0xDB, 0x17, 0x70, 0x08, 0xC3, 0x37, \
+	0x7E, 0x84};
+// public stranger key
+uint8_t public_3x[NUM_ECC_DIGITS] = {0x8C, 0xDC, 0xCF, 0xD4, 0xCD, 0x34, \
+	0x3F, 0x9B, 0x0D, 0x70, 0x57, 0x3D, 0x40, 0x1A, 0x6F, 0xFE, 0xB0, 0x9C, \
+	0x05, 0x47, 0xE4, 0x02, 0x8C, 0xAF, 0x0C, 0x2D, 0xDB, 0x8A, 0xC9, 0x66, \
+	0x37, 0x1F};
+uint8_t public_3y[NUM_ECC_DIGITS] = {0xF4, 0x60, 0xB9, 0x86, 0x5A, 0xC5, \
+	0xB0, 0x41, 0xF9, 0x53, 0x18, 0xCF, 0x9A, 0x7B, 0x24, 0xF8, 0x75, 0x94, \
+	0xD9, 0xEF, 0x49, 0xC1, 0x9A, 0xAE, 0xE4, 0xE5, 0x64, 0xAD, 0x58, 0x48, \
+	0x6D, 0x36};
+
 
 /* Global to know if listen function was called */
 static uint8_t listen = 0;
@@ -179,6 +210,8 @@ static int write_keepalive(int spi_fd, int sockfd, int keepalive_op,
 				struct nrf24_mac dst, struct nrf24_mac src)
 {
 	int err;
+	uint8_t *cdata;
+	size_t block, size;
 	/* Assemble keep alive packet */
 	struct nrf24_io_pack p;
 	struct nrf24_ll_data_pdu *opdu =
@@ -196,11 +229,30 @@ static int write_keepalive(int spi_fd, int sockfd, int keepalive_op,
 	/* src and dst address to keepalive */
 	kpalive->dst_addr.address.uint64 = dst.address.uint64;
 	kpalive->src_addr.address.uint64 = src.address.uint64;
-	/* Sends keep alive packet */
-	err = phy_write(spi_fd, &p,
-					sizeof(struct nrf24_ll_data_pdu) +
+
+	size = sizeof(struct nrf24_ll_data_pdu) +
 					sizeof(struct nrf24_ll_crtl_pdu) +
-					sizeof(struct nrf24_ll_keepalive));
+					sizeof(struct nrf24_ll_keepalive);
+
+	/* Encrypt Data */
+	cdata = p.payload + 2;
+
+	//Force block size to 16 or 32
+	if (size > 16)
+		block = 32;
+	else
+		block = 16;
+
+	derive_secret (public_3x, public_3y, private_4,
+					public_4x, public_4y, skey, 0);
+
+	err = encrypt(cdata, block, skey, &iv);
+
+	size = block;
+	/*End of Encryption*/
+
+	/* Sends keep alive packet */
+	err = phy_write(spi_fd, &p, size);
 
 	if (err < 0)
 		return err;
@@ -363,7 +415,8 @@ static int write_raw(int spi_fd, int sockfd)
 	int err;
 	struct nrf24_io_pack p;
 	struct nrf24_ll_data_pdu *opdu = (void *)p.payload;
-	size_t plen, left;
+	size_t plen, left, block;
+	uint8_t *cdata;
 
 	/* If has nothing to send, returns EBUSY */
 	if (peers[sockfd-1].len_tx == 0)
@@ -404,6 +457,26 @@ static int write_raw(int spi_fd, int sockfd)
 		memcpy(opdu->payload, peers[sockfd-1].buffer_tx +
 			(peers[sockfd-1].len_tx - left), plen);
 
+		/*Encrypt Data*/
+		//Force block size to 16 or 32
+		if (plen > 16)
+			block = 32;
+		else
+			block = 16;
+		
+		cdata = p.payload + 2;
+
+		derive_secret (public_3x, public_3y, private_4,
+						public_4x, public_4y, skey, 0);
+		
+		err = encrypt(cdata, block, skey, &iv);
+		if (err < 0)
+			return err;
+		
+		plen = block;
+
+		/*End of Encryption*/		
+
 		/* Send packet */
 		err = phy_write(spi_fd, &p, plen + DATA_HDR_SIZE);
 		/*
@@ -436,9 +509,11 @@ static int write_raw(int spi_fd, int sockfd)
 
 static int read_raw(int spi_fd, int sockfd)
 {
-	ssize_t ilen;
+	ssize_t ilen, block;
 	size_t plen;
 	struct nrf24_io_pack p;
+	int size;
+	uint8_t *cdata;
 	const struct nrf24_ll_data_pdu *ipdu = (void *)p.payload;
 
 	p.pipe = sockfd;
@@ -448,6 +523,31 @@ static int read_raw(int spi_fd, int sockfd)
 	 * on success, the number of bytes read is returned
 	 */
 	while ((ilen = phy_read(spi_fd, &p, NRF24_MTU)) > 0) {
+		
+		/*Decrypt Data here*/
+		cdata = p.payload+2;
+		size = ilen - DATA_HDR_SIZE;
+
+		//Force block size to 16 or 32
+		if (size > 16)
+			block = 32;
+		else
+			block = 16;
+
+		derive_secret (public_3x, public_3y, private_4,
+					public_4x, public_4y, skey, &iv);
+		
+		size = decrypt(cdata, block, skey, 0);
+		
+		if (size < 0)
+			break;
+			/*
+				 * TODO: disconnect, data error!?!?!?
+				 * Not a data message
+				 */
+
+		/*End of Decryption*/	
+
 		/* Check if is data or Control */
 		switch (ipdu->lid) {
 

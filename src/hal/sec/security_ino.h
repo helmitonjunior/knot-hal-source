@@ -2,8 +2,10 @@
 #include <stdlib.h>
 
 /*FIX ME: Thing will need to access nanoecc and aes libs	*/
-#include "sec/nanoecc/ecc.h"
-#include "sec/aes/aes.h"
+#include "nanoecc/ecc.h"
+#include "aes/aes.h"
+#include "sec_errors.h"
+
 
 #ifdef __cplusplus
 extern "C"{

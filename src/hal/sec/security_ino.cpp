@@ -1,8 +1,8 @@
 
 /*FIX ME: Thing will need to access nanoecc and aes libs	*/
-#include "sec/nanoecc/ecc.h"
-#include "sec/aes/aes.h"
-#include "sec/sec_errors.h"
+#include "nanoecc/ecc.h"
+#include "aes/aes.h"
+#include "sec_errors.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,14 +27,13 @@ int encrypt(uint8_t *plaintext, size_t plaintext_len,
 	aes256_ctx_t ctx;
 
 	/* Initialize AES with Key */
-	aes256_init(skey, &ctx);
+	aes256_init(key, &ctx);
 	
 	/* PKCS7 Padding for 16 bytes blocks */
 	pad_value = plaintext_len % 16;
 	if (pad_value > 0){
 		pad_value = 16 - pad_value;
-		plaintext_len +=pad_value;
-		for (i = plaintext_len; i < plaintext_len; i++)
+		for (i = plaintext_len; i < plaintext_len+pad_value; i++)
 			plaintext[i] = pad_value;
 	}
 
@@ -43,7 +42,7 @@ int encrypt(uint8_t *plaintext, size_t plaintext_len,
 	if (plaintext_len > 16)
 		aes256_enc(plaintext + 16, &ctx);
 
-	return plaintext_len;
+	return plaintext_len+pad_value;
 }
 
 int decrypt(uint8_t *ciphertext, size_t ciphertext_len,
@@ -83,22 +82,21 @@ int derive_secret(uint8_t stpubx[], uint8_t stpuby[], uint8_t lcpriv[],
 				uint8_t lcpubx[], uint8_t lcpuby[], uint8_t secret[],
 				uint8_t *iv)
 {
-
 	uint8_t bytebuffer[NUM_ECC_DIGITS];
 	EccPoint ecp;
-	memcpy(ecp.x,stpubx,NUM_ECC_DIGITS);
-	memcpy(ecp.y,stpuby,NUM_ECC_DIGITS);
-	
-	extern "C" {
-		if (ecdh_shared_secret(skey, &ecp, lcpriv, iv) == 1) {
-			ecc_native2bytes (bytebuffer, skey);
-			memcpy(skey, bytebuffer, NUM_ECC_DIGITS);
-			return 1;
-		} else {
-			return ERROR_NANO_DERIVE_SKEY;
-		}
-	}
-
+	ecc_bytes2native (bytebuffer, stpubx);
+	memcpy(ecp.x,bytebuffer,NUM_ECC_DIGITS);
+	ecc_bytes2native (bytebuffer, stpuby);
+	memcpy(ecp.y,bytebuffer,NUM_ECC_DIGITS);
+	ecc_bytes2native (bytebuffer, lcpriv);
+	memcpy(lcpriv,bytebuffer,NUM_ECC_DIGITS);
+	if (ecdh_shared_secret(secret, &ecp, lcpriv, iv) == 1) {
+		ecc_native2bytes (bytebuffer, secret);
+		memcpy(secret, bytebuffer, NUM_ECC_DIGITS);
+		return 1;
+	} else {
+		return ERROR_NANO_DERIVE_SKEY;
+	}	
 }
 
 extern void EccPoint_mult(EccPoint * p_result, EccPoint * p_point,

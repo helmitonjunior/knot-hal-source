@@ -5,7 +5,8 @@ ZIP=zip
 
 AM_MAKEFLAGS = --no-print-directory
 SUBDIRS = src/spi src/nrf24l01 src/hal/storage src/hal/time src/hal/log \
-					src/hal/comm src/drivers src/hal/gpio
+					src/hal/comm src/drivers src/hal/gpio \
+					src/hal/sec
 
 AM_CFLAGS = $(WARNING_CFLAGS) $(BUILD_CFLAGS)
 AM_LDFLAGS = $(BUILD_LDFLAGS)
@@ -26,7 +27,8 @@ src_nrfd_nrfd_LDADD = libs/libhallog.a libs/libhalcommnrf24.a \
 				libs/libhalstorage.a \
 				libs/libnrf24l01.a \
 				libs/libspi.a \
-				@GLIB_LIBS@ @JSON_LIBS@ \
+				libs/libsecurity.a \
+				@GLIB_LIBS@ @JSON_LIBS@ @OPENSSL_LIBS@ \
 				@GIO_UNIX_LIBS@
 src_nrfd_nrfd_LDFLAGS = $(AM_LDFLAGS)
 src_nrfd_nrfd_CFLAGS = $(AM_CFLAGS) @GLIB_CFLAGS@ \

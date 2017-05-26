@@ -50,5 +50,5 @@ AC_SUBST(JSON_LIBS)
 AC_CONFIG_FILES([Makefile src/spi/Makefile src/nrf24l01/Makefile \
 		src/hal/storage/Makefile src/hal/time/Makefile \
 		src/hal/log/Makefile src/hal/comm/Makefile src/drivers/Makefile
-		src/hal/gpio/Makefile])
+		src/hal/gpio/Makefile src/hal/sec/Makefile])
 AC_OUTPUT

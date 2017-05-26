@@ -12,7 +12,7 @@ AM_CFLAGS = $(WARNING_CFLAGS) $(BUILD_CFLAGS)
 AM_LDFLAGS = $(BUILD_LDFLAGS)
 
 bin_PROGRAMS = proxy/spiproxyd src/nrfd/nrfd src/lorad/lorad tools/sniffer tools/rpiecho \
-						src/seriald/seriald
+						src/seriald/seriald tools/testCrypto
 
 proxy_spiproxyd_SOURCES = proxy/main.c
 proxy_spiproxyd_LDADD = libs/libspi.a libs/libnrf24l01.a @GLIB_LIBS@
@@ -68,6 +68,13 @@ tools_rpiecho_CFLAGS = $(AM_CFLAGS) @GLIB_CFLAGS@ \
 				-I$(top_srcdir)/src/spi \
 				-I$(top_srcdir)/src/nrf24l01 \
 				-I$(top_srcdir)/nrf
+
+tools_testCrypto_SOURCES = tools/testCrypto.c
+tools_testCrypto_LDADD = libs/libhallog.a libs/libsecurity.a @OPENSSL_LIBS@
+tools_testCrypto_LDFLAGS = $(AM_LDFLAGS)
+tools_testCrypto_CFLAGS = $(AM_CFLAGS) @OPENSSL_CFLAGS@ \
+				-I$(top_srcdir)/src
+
 
 src_seriald_seriald_SOURCES = src/seriald/main.c \
 				src/seriald/manager.h src/seriald/manager.c

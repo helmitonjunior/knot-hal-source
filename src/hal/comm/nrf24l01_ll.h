@@ -91,7 +91,10 @@ struct nrf24_ll_data_pdu {
 } __attribute__ ((packed));
 
 #define DATA_HDR_SIZE 			sizeof(struct nrf24_ll_data_pdu)
-#define NRF24_PW_MSG_SIZE		(NRF24_MTU - DATA_HDR_SIZE)
+
+/*PW_MSG_SIZE equals MTU minus header and padding-reserved byte*/
+#define NRF24_PW_MSG_SIZE		(NRF24_MTU - (DATA_HDR_SIZE)-1)/* 6 bits (64 packets) are reserved to sequence number*/
+
 /* 6 bits (64 packets) are reserved to sequence number*/
 #define NRF24_MAX_MSG_SIZE		(64 * NRF24_PW_MSG_SIZE)
 

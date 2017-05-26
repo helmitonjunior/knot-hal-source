@@ -1,8 +1,10 @@
 
+extern "C"{
 /*FIX ME: Thing will need to access nanoecc and aes libs	*/
 #include "nanoecc/ecc.h"
 #include "aes/aes.h"
 #include "sec_errors.h"
+#include "security_ino.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -112,4 +114,5 @@ static int getRandomBytes(int randfd, void *p_dest, unsigned p_size)
 int generate_keys(uint8_t *keys)
 {
 		return ERROR_FUNCTION_UNAVALIABLE;
+}
 }

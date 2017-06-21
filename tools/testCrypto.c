@@ -14,7 +14,7 @@
 
 #include <errno.h>
 #include <unistd.h>
-#include "src/hal/sec/security.h"
+#include "src/hal/sec/security_linux.h"
 #include "src/hal/sec/nanoecc/ecc.h"
 #include "src/hal/sec/aes/aes.h"
 

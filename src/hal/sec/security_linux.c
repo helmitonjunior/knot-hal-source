@@ -9,7 +9,7 @@
 #include <openssl/conf.h>
 #include "nanoecc/ecc.h"
 #include "aes/aes.h"
-#include "security.h"
+#include "security_linux.h"
 #include "sec_errors.h"
 
 #include <stdio.h>

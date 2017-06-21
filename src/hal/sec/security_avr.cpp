@@ -4,7 +4,7 @@ extern "C"{
 #include "nanoecc/ecc.h"
 #include "aes/aes.h"
 #include "sec_errors.h"
-#include "security_ino.h"
+#include "security_avr.h"
 
 #include <stdio.h>
 #include <stdlib.h>

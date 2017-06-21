@@ -15,11 +15,11 @@
 #ifdef ARDUINO
 #include "hal/avr_errno.h"
 #include "hal/avr_unistd.h"
-#include "sec/security_ino.h"
+#include "sec/security_avr.h"
 #else
 #include <errno.h>
 #include <unistd.h>
-#include "src/hal/sec/security.h"
+#include "src/hal/sec/security_linux.h"
 #endif
 
 #include "hal/nrf24.h"
@@ -241,7 +241,7 @@ static int write_keepalive(int spi_fd, int sockfd, int keepalive_op,
 		block = 16;
 
 	derive_secret (public_3x, public_3y, private_4,
-					public_4x, public_4y, skey, 0);
+					public_4x, public_4y, skey, &iv);
 
 	err = encrypt(cdata, block, skey, &iv);
 
@@ -468,7 +468,7 @@ static int write_raw(int spi_fd, int sockfd)
 		cdata = p.payload + 2;
 
 		derive_secret (public_3x, public_3y, private_4,
-						public_4x, public_4y, skey, 0);
+						public_4x, public_4y, skey, &iv);
 		
 		err = encrypt(cdata, block, skey, &iv);
 		

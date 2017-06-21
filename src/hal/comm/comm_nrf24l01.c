@@ -15,11 +15,11 @@
 #ifdef ARDUINO
 #include "hal/avr_errno.h"
 #include "hal/avr_unistd.h"
-#include "src/hal/sec/security_ino.h"
+#include "src/hal/sec/security_avr.h"
 #else
 #include <errno.h>
 #include <unistd.h>
-#include "src/hal/sec/security.h"
+#include "src/hal/sec/security_linux.h"
 #endif
 
 #include "hal/nrf24.h"

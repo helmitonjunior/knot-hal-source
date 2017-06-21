@@ -1,7 +1,7 @@
 lib_LIBRARIES = libsecurity.a
 AM_CFLAGS = $(WARNING_CFLAGS) $(BUILD_CFLAGS)
 
-libsecurity_a_SOURCES = security.c nanoecc/ecc.c nanoecc/ecc.h aes/aes.h
+libsecurity_a_SOURCES = security_linux.c nanoecc/ecc.c nanoecc/ecc.h aes/aes.h
 libsecurity_a_CPPFLAGS = -I$(top_srcdir)/src
 
 all-local:
